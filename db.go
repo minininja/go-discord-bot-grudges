@@ -64,7 +64,7 @@ func ListGrudges() (string) {
 	response := ""
 	var line string
 
-	stmt, err := con.Prepare("select target || ' reported by ' || reporter || ' because ' || why || ' on ' || created from grudge order by target, reporter;")
+	stmt, err := con.Prepare("select target || ' reported by ' || reporter || ' because they ' || why || ' on ' || created from grudge order by target, reporter;")
 	if (err != nil) {
 		log.Println(err)
 	}
