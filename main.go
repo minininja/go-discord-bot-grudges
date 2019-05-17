@@ -2,37 +2,40 @@ package main
 
 import (
 	"flag"
-	"os"
-	"log"
-	"github.com/bwmarrin/discordgo"
-	"github.com/Necroforger/dgrouter/exrouter"
-	"strings"
 	"fmt"
+	"github.com/Necroforger/dgrouter/exrouter"
+	"github.com/bwmarrin/discordgo"
+	"log"
+	"os"
+	"strings"
 )
 
 var (
 	commandPrefix string
 	botID         string
+	debug         bool
 )
 
 var Session, _ = discordgo.New()
 
 func init() {
 	Session.Token = os.Getenv("DG_TOKEN")
-	if (Session.Token == "") {
+	if Session.Token == "" {
 		flag.StringVar(&Session.Token, "t", "", "Discord Auth Token")
 	}
 
-	commandPrefix = os.Getenv( "DG_COMMAND_PREFIX")
-	if (commandPrefix == "") {
+	commandPrefix = os.Getenv("DG_COMMAND_PREFIX")
+	if commandPrefix == "" {
 		flag.StringVar(&commandPrefix, "cp", "!", "Discord command prefix")
 	}
+
+	flag.BoolVar(&debug, "debug", false, "Enable debug message logger mode")
 }
 
 func main() {
 	flag.Parse()
 
-	if (Session.Token == "") {
+	if Session.Token == "" {
 		log.Fatal("A discord token must be provided")
 		return
 	}
@@ -54,27 +57,27 @@ func main() {
 		target := strings.Split(ctx.Msg.Content, " ")[1]
 		why := strings.Join(strings.Split(ctx.Msg.Content, " ")[2:], " ")
 		log.Printf("adding grudge against %s because of %s\n", target, why)
-		InsertGrudge(ctx.Msg.Author.Username, target, why)
+		InsertGrudge(ctx.Msg.GuildID, ctx.Msg.Author.Username, target, why)
 		ctx.Reply("added grudge against " + target)
 	}).Desc("Report a grudge against someone, format is <target> <why>")
 
 	router.On("ungrudge", func(ctx *exrouter.Context) {
 		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
-		DeleteGrudge(target)
+		DeleteGrudge(ctx.Msg.GuildID, target)
 		ctx.Reply("removed grudges against " + target)
 	}).Desc("Remove someone from the list")
 
 	router.On("grudges", func(ctx *exrouter.Context) {
-		grudges := ListGrudges()
-		if (grudges != "") {
-			ctx.Reply(grudges)
+		grudges := ListGrudges(ctx.Msg.GuildID)
+		if grudges != "" {
+			ctx.Reply("target : reported by : why @ when\n" + grudges)
 		} else {
 			ctx.Reply("hooray, there's no one we have a grudge against")
 		}
 	}).Desc("Show the current list of grudges")
 
 	// add the default/help message
-	router.Default = router.On("help",func(ctx *exrouter.Context) {
+	router.Default = router.On("help", func(ctx *exrouter.Context) {
 		var text = ""
 		for _, v := range router.Routes {
 			text += fmt.Sprintf("%8s: %s\n", v.Name, v.Description)
@@ -83,6 +86,7 @@ func main() {
 	}).Desc("Displays the the help menu")
 
 	// add the router as a handler
+	discord.AddHandler(messageLogger)
 	discord.AddHandler(func(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		router.FindAndExecute(discord, commandPrefix, discord.State.User.ID, m.Message)
 	})
@@ -102,5 +106,13 @@ func errCheck(msg string, err error) {
 	}
 }
 
+func messageLogger(session *discordgo.Session, message *discordgo.MessageCreate) {
+	if debug {
+		// no need to log our own messages
+		if session.State.User.ID == message.Author.ID {
+			return
+		}
 
-
+		log.Printf("%s %s %s %s\n", message.GuildID, message.ChannelID, message.Author.Username, message.Content)
+	}
+}
