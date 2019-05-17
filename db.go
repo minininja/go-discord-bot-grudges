@@ -4,13 +4,21 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"flag"
+	"os"
 )
 
 var con *sql.DB
 
 
 func init() {
-	db, err := sql.Open("sqlite3", "./test.db")
+	dbPath := os.Getenv("DB_LOCATION")
+	if (dbPath == "") {
+		flag.StringVar(&dbPath, "db", "./test.db", "database path (including filename)")
+	}
+	log.Printf("Using db path %s\n", dbPath)
+
+	db, err := sql.Open("sqlite3", dbPath)
 	if (err != nil) {
 		log.Fatal(err)
 		return
@@ -26,15 +34,17 @@ func init() {
 	`
 	_, err = db.Exec(initSql)
 	if (err != nil) {
-		log.Printf("%q: %s\n" ,err, initSql)
+		log.Fatalf("%q: %s\n" ,err, initSql)
 		return
 	}
+
+
 }
 
 func InsertGrudge(reporter string, target string) {
 	stmt, err := con.Prepare("insert into grudge (reporter, target, created) values (?, ?, DATETIME('now'));")
 	if (err != nil) {
-		log.Printf("Couldn't write to db %s", err)
+		log.Fatalf("Couldn't write to db %s\n", err)
 	}
 	defer stmt.Close()
 
@@ -44,7 +54,7 @@ func InsertGrudge(reporter string, target string) {
 func DeleteGrudge(target string) {
 	stmt, err := con.Prepare("delete from grudge where target = ?;")
 	if (err != nil) {
-		log.Println(err)
+		log.Fatalf("Delete failed for %s, %s\n", target, err)
 	}
 	defer stmt.Close()
 
@@ -60,7 +70,7 @@ func ListGrudges() (string) {
 
 	rows, err := stmt.Query()
 	if (err != nil) {
-		log.Println(err)
+		log.Fatalf("Couldn't run query against the db %s\n", err)
 	}
 	defer rows.Close()
 

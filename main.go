@@ -42,8 +42,8 @@ func main() {
 	// make sure we have a user account
 	user, err := discord.User("@me")
 	errCheck("error retrieving account", err)
-	log.Println("Running as ", user.Username)
-	log.Println("Command prefix is ", commandPrefix)
+	log.Printf("Running as %s\n", user.Username)
+	log.Printf("Command prefix is %s\n", commandPrefix)
 
 	// create the router
 	router := exrouter.New()
@@ -88,13 +88,13 @@ func main() {
 	err = discord.Open()
 	errCheck("Error opening connection to Discord", err)
 
-	log.Println("bot is now running")
+	log.Println("Bot is now running")
 	<-make(chan struct{})
 }
 
 func errCheck(msg string, err error) {
 	if err != nil {
-		log.Fatal("%s %s", msg, err)
+		log.Fatalf("%s %s\n", msg, err)
 		panic(err)
 	}
 }
