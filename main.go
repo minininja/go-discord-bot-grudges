@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/Necroforger/dgrouter/exrouter"
 	"strings"
+	"fmt"
 )
 
 var (
@@ -76,7 +77,7 @@ func main() {
 	router.Default = router.On("help",func(ctx *exrouter.Context) {
 		var text = ""
 		for _, v := range router.Routes {
-			text += v.Name + " : \t" + v.Description + "\n"
+			text += fmt.Sprintf("%8s: %s\n", v.Name, v.Description)
 		}
 		ctx.Reply("```" + text + "```")
 	}).Desc("Displays the the help menu")
