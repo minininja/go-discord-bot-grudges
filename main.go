@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"os"
-	"fmt"
 	"log"
 	"github.com/bwmarrin/discordgo"
+	"github.com/Necroforger/dgrouter/exrouter"
+	"strings"
 )
 
 var (
@@ -20,6 +21,11 @@ func init() {
 	if (Session.Token == "") {
 		flag.StringVar(&Session.Token, "t", "", "Discord Auth Token")
 	}
+
+	commandPrefix = os.Getenv( "DG_COMMAND_PREFIX")
+	if (commandPrefix == "") {
+		flag.StringVar(&commandPrefix, "cp", "!", "Discord command prefix")
+	}
 }
 
 func main() {
@@ -32,26 +38,57 @@ func main() {
 
 	discord, err := discordgo.New("Bot " + Session.Token)
 	errCheck("error creating discord session", err)
+
+	// make sure we have a user account
 	user, err := discord.User("@me")
 	errCheck("error retrieving account", err)
+	log.Println("Running as ", user.Username)
+	log.Println("Command prefix is ", commandPrefix)
 
-	botID = user.ID
-	discord.AddHandler(commandHandler)
-	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
-		err = discord.UpdateStatus(0, "A friendly helpful bot!")
-		if err != nil {
-			fmt.Println("Error attempting to set my status")
+	// create the router
+	router := exrouter.New()
+
+	// add the test message
+	router.On("grudge", func(ctx *exrouter.Context) {
+		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
+		InsertGrudge(ctx.Msg.Author.Username, target)
+		ctx.Reply("added grudge against " + target)
+	}).Desc("Responses with 'testing'")
+
+	router.On("ungrudge", func(ctx *exrouter.Context) {
+		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
+		DeleteGrudge(target)
+		ctx.Reply("removed grudges against " + target)
+	}).Desc("Remove someone from the list")
+
+	router.On("grudges", func(ctx *exrouter.Context) {
+		grudges := ListGrudges()
+		if (grudges != "") {
+			ctx.Reply(grudges)
+		} else {
+			ctx.Reply("hooray, there's no one we have a grudge against")
 		}
-		servers := discord.State.Guilds
-		fmt.Printf("GrudgesBot has started on %d servers", len(servers))
+	}).Desc("Show the current list")
+
+	// add the default/help message
+	router.Default = router.On("help",func(ctx *exrouter.Context) {
+		var text = ""
+		for _, v := range router.Routes {
+			text += v.Name + " : \t" + v.Description + "\n"
+		}
+		ctx.Reply("```" + text + "```")
+	}).Desc("Displays the the help menu")
+
+	// add the router as a handler
+	discord.AddHandler(func(_ *discordgo.Session, m *discordgo.MessageCreate) {
+		router.FindAndExecute(discord, commandPrefix, discord.State.User.ID, m.Message)
 	})
 
+	// connect to discord
 	err = discord.Open()
 	errCheck("Error opening connection to Discord", err)
-	defer discord.Close()
 
-	commandPrefix = "/"
-
+	log.Println("bot is now running")
 	<-make(chan struct{})
 }
 
@@ -62,17 +99,5 @@ func errCheck(msg string, err error) {
 	}
 }
 
-func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
-	user := message.Author
-	if user.ID == botID || user.Bot {
-		//Do nothing because the bot is talking
-		return
-	}
 
-	content := message.Content
-	if (content == commandPrefix + "test") {
-		discord.ChannelMessageSend(message.ChannelID, "Testing...")
-	}
 
-	fmt.Printf("Message: %+v || From: %s\n", message.Message, message.Author)
-}
