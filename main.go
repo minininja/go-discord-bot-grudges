@@ -50,10 +50,12 @@ func main() {
 
 	// add the test message
 	router.On("grudge", func(ctx *exrouter.Context) {
-		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
-		InsertGrudge(ctx.Msg.Author.Username, target)
+		target := strings.Split(ctx.Msg.Content, " ")[1]
+		why := strings.Join(strings.Split(ctx.Msg.Content, " ")[2:], " ")
+		log.Printf("adding grudge against %s because of %s\n", target, why)
+		InsertGrudge(ctx.Msg.Author.Username, target, why)
 		ctx.Reply("added grudge against " + target)
-	}).Desc("Responses with 'testing'")
+	}).Desc("Report a grudge against someone, format is <target> <why>")
 
 	router.On("ungrudge", func(ctx *exrouter.Context) {
 		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
@@ -68,7 +70,7 @@ func main() {
 		} else {
 			ctx.Reply("hooray, there's no one we have a grudge against")
 		}
-	}).Desc("Show the current list")
+	}).Desc("Show the current list of grudges")
 
 	// add the default/help message
 	router.Default = router.On("help",func(ctx *exrouter.Context) {

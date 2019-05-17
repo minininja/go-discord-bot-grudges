@@ -29,6 +29,7 @@ func init() {
 		create table if not exists grudge (
 			reporter varchar(80) not null,
 			target varchar(80) not null,
+			why varchar(255) null,
 			created datetime
 		);
 	`
@@ -37,18 +38,16 @@ func init() {
 		log.Fatalf("%q: %s\n" ,err, initSql)
 		return
 	}
-
-
 }
 
-func InsertGrudge(reporter string, target string) {
-	stmt, err := con.Prepare("insert into grudge (reporter, target, created) values (?, ?, DATETIME('now'));")
+func InsertGrudge(reporter string, target string, why string) {
+	stmt, err := con.Prepare("insert into grudge (reporter, target, why, created) values (?, ?, ?, DATETIME('now'));")
 	if (err != nil) {
 		log.Fatalf("Couldn't write to db %s\n", err)
 	}
 	defer stmt.Close()
 
-	stmt.Exec(reporter, target)
+	stmt.Exec(reporter, target, why)
 }
 
 func DeleteGrudge(target string) {
@@ -62,7 +61,10 @@ func DeleteGrudge(target string) {
 }
 
 func ListGrudges() (string) {
-	stmt, err := con.Prepare("select target, reporter, created from grudge order by target, reporter;")
+	response := ""
+	var line string
+
+	stmt, err := con.Prepare("select target || ' reported by ' || reporter || ' because ' || why || ' on ' || created from grudge order by target, reporter;")
 	if (err != nil) {
 		log.Println(err)
 	}
@@ -74,17 +76,13 @@ func ListGrudges() (string) {
 	}
 	defer rows.Close()
 
-	var response string
-	var target string
-	var reporter string
-	var when string
 	for (rows.Next()) {
-		err := rows.Scan(&target, &reporter, &when)
+		err := rows.Scan(&line)
 		if (err != nil) {
 			log.Println(err)
 			return ""
 		}
-		response += target + " reported by " + reporter + " on " + when + "\n"
+		response += line + "\n"
 	}
 
 	return response
