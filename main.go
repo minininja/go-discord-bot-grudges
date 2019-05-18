@@ -57,7 +57,20 @@ func main() {
 		target := strings.Split(ctx.Msg.Content, " ")[1]
 		why := strings.Join(strings.Split(ctx.Msg.Content, " ")[2:], " ")
 		log.Printf("adding grudge against %s because of %s\n", target, why)
-		InsertGrudge(ctx.Msg.GuildID, ctx.Msg.Author.Username, target, why)
+
+		guildId := ctx.Msg.GuildID
+		authorId := ctx.Msg.Author.ID
+		loggedName := ctx.Msg.Author.Username
+
+		member, err := discord.GuildMember(guildId, authorId)
+		if err != nil{
+			log.Fatalf("Could not lookup user's nickname %s %s ", guildId, authorId)
+		} else {
+			if member.Nick != "" {
+				loggedName = member.Nick
+			}
+		}
+		InsertGrudge(guildId, loggedName, target, why)
 		ctx.Reply("added grudge against " + target)
 	}).Desc("Report a grudge against someone, format is <target> <why>")
 
