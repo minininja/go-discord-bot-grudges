@@ -54,23 +54,31 @@ func main() {
 
 	// add the test message
 	router.On("grudge", func(ctx *exrouter.Context) {
-		target := strings.Split(ctx.Msg.Content, " ")[1]
-		why := strings.Join(strings.Split(ctx.Msg.Content, " ")[2:], " ")
-		log.Printf("adding grudge against %s because of %s\n", target, why)
+		content := strings.Split(ctx.Msg.Content, " ")
 
-		guildId := ctx.Msg.GuildID
-		authorId := ctx.Msg.Author.ID
-		loggedName := ctx.Msg.Author.Username
-
-		member, err := discord.GuildMember(guildId, authorId)
-		if err != nil{
-			log.Fatalf("Could not lookup user's nickname %s %s ", guildId, authorId)
-		} else {
-			if member.Nick != "" {
-				loggedName = member.Nick
-			}
+		if len(content) == 1 {
+			ctx.Reply("You'll need to tell me who you want to grudge")
+			return
 		}
-		InsertGrudge(guildId, loggedName, target, why)
+
+		if len(content) == 2 {
+			ctx.Reply("I need a reason to grudge " + content[1])
+			return
+		}
+
+		target := content[1]
+		why := strings.Join(content[2:], " ")
+		who := ctx.Msg.Author.Username
+
+		// try for the nickname
+		member, err := discord.GuildMember(ctx.Msg.GuildID, ctx.Msg.Author.ID)
+		if err != nil {
+			log.Printf("Couldn't lookup user's nickname %s %s %s", ctx.Msg.GuildID, ctx.Msg.Author.ID, who)
+		} else if member.Nick != "" {
+			who = member.Nick
+		}
+
+		InsertGrudge(ctx.Msg.GuildID, who, target, why)
 		ctx.Reply("added grudge against " + target)
 	}).Desc("Report a grudge against someone, format is <target> <why>")
 
