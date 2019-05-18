@@ -43,12 +43,26 @@ func main() {
 	discord, err := discordgo.New("Bot " + Session.Token)
 	errCheck("error creating discord session", err)
 
+
+
 	// make sure we have a user account
 	user, err := discord.User("@me")
 	errCheck("error retrieving account", err)
 	log.Printf("Running as %s\n", user.Username)
 	log.Printf("Command prefix is %s\n", commandPrefix)
 
+	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
+		err = discord.UpdateStatus(0, "A friendly helpful bot!")
+		if err != nil {
+			fmt.Println("Error attempting to set my status")
+		}
+		guilds := discord.State.Guilds
+		log.Printf("Started on %d servers", len(guilds))
+		for _, guild := range guilds {
+			// TODO need to figure out how to get the guild names, probably needs more permissions (?)
+			log.Printf("\t%s - %s\n", guild.ID, guild.Name)
+		}
+	})
 	// create the router
 	router := exrouter.New()
 
@@ -137,3 +151,4 @@ func messageLogger(session *discordgo.Session, message *discordgo.MessageCreate)
 		log.Printf("%s %s %s %s\n", message.GuildID, message.ChannelID, message.Author.Username, message.Content)
 	}
 }
+
