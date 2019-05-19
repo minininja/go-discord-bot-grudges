@@ -43,8 +43,6 @@ func main() {
 	discord, err := discordgo.New("Bot " + Session.Token)
 	errCheck("error creating discord session", err)
 
-
-
 	// make sure we have a user account
 	user, err := discord.User("@me")
 	errCheck("error retrieving account", err)
@@ -52,7 +50,7 @@ func main() {
 	log.Printf("Command prefix is %s\n", commandPrefix)
 
 	discord.AddHandler(func(discord *discordgo.Session, ready *discordgo.Ready) {
-		err = discord.UpdateStatus(0, "A friendly helpful bot!")
+		err = discord.UpdateStatus(0, "Angrily muttering about revenge")
 		if err != nil {
 			fmt.Println("Error attempting to set my status")
 		}
@@ -97,9 +95,13 @@ func main() {
 	}).Desc("Report a grudge against someone, format is <target> <why>")
 
 	router.On("ungrudge", func(ctx *exrouter.Context) {
-		target := strings.Join(strings.Split(ctx.Msg.Content, " ")[1:], " ")
-		DeleteGrudge(ctx.Msg.GuildID, target)
-		ctx.Reply("removed grudges against " + target)
+		content := strings.Split(ctx.Msg.Content, " ")
+		if len(content) == 1 {
+			ctx.Reply("I can't remove a grudge against nobody")
+		} else {
+			DeleteGrudge(ctx.Msg.GuildID, content[1])
+			ctx.Reply("Removed grudges against " + content[1])
+		}
 	}).Desc("Remove someone from the list")
 
 	router.On("grudges", func(ctx *exrouter.Context) {
