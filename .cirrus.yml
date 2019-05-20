@@ -1,0 +1,16 @@
+container:
+  image: golang:latest
+
+env:
+  GOPROXY: https://proxy.golang.org
+
+test_task:
+  modules_cache:
+    fingerprint_script: cat go.sum
+    folder: $GOPATH/pkg/mod
+  get_script:
+    - go get github.com/Necroforger/dgrouter/exrouter
+    - go get github.com/bwmarrin/discordgo
+    - go get github.com/mattn/go-sqlite3
+  build_script: go build
+#  test_script: go test ./...
