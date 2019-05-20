@@ -95,8 +95,9 @@ func main() {
 		if len(content) == 1 {
 			ctx.Reply("I can't remove a grudge against nobody")
 		} else {
-			DeleteGrudge(ctx.Msg.GuildID, content[1])
-			ctx.Reply("Removed grudges against " + content[1])
+			ungrudge := strings.Join(content[1:], " ")
+			DeleteGrudge(ctx.Msg.GuildID, ungrudge)
+			ctx.Reply("Removed grudges against " + ungrudge)
 		}
 	}).Desc("Remove someone from the list")
 
