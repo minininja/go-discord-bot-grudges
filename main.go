@@ -66,20 +66,16 @@ func main() {
 
 	// add the test message
 	router.On("grudge", func(ctx *exrouter.Context) {
-		content := strings.Split(ctx.Msg.Content, " ")
+		content := strings.Split(ctx.Msg.Content, "|")
 
 		if len(content) == 1 {
 			ctx.Reply("You'll need to tell me who you want to grudge")
+			ctx.Reply("Example: "+ commandPrefix + "grudge the player you hate|the reason for it")
 			return
 		}
 
-		if len(content) == 2 {
-			ctx.Reply("I need a reason to grudge " + content[1])
-			return
-		}
-
-		target := content[1]
-		why := strings.Join(content[2:], " ")
+		target := strings.Join(strings.Split(content[0], " ")[1:], " ")
+		why := content[1]
 		who := ctx.Msg.Author.Username
 
 		// try for the nickname
@@ -92,7 +88,7 @@ func main() {
 
 		InsertGrudge(ctx.Msg.GuildID, who, target, why)
 		ctx.Reply("added grudge against " + target)
-	}).Desc("Report a grudge against someone, format is <target> <why>")
+	}).Desc("Report a grudge against someone, put a | (pipe symbol) between the who and the why.")
 
 	router.On("ungrudge", func(ctx *exrouter.Context) {
 		content := strings.Split(ctx.Msg.Content, " ")
