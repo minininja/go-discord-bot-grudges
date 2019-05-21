@@ -1,7 +1,13 @@
 language: go
 
 go:
-  - 1.10
+  - 1.10.x
+  - 1.11.x
+
+install:
+  - go get github.com/Necroforger/dgrouter/exrouter
+  - go get github.com/bwmarrin/discordgo
+  - go get github.com/mattn/go-sqlite3
 
 script:
-  go build
+  - go build
