@@ -1,3 +1,5 @@
 .idea
 *.iml
 go-grudges-bot
+test.db
+*.out
