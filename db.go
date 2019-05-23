@@ -24,25 +24,10 @@ func init() {
 	}
 	con = db
 
-	initSql := `
-		create table if not exists grudge (
-			reporter varchar(80) not null,
-			target varchar(80) not null,
-			why varchar(255) null,
-			created datetime
-		);
--- 		alter table grudge 
--- 			add column guild varchar(80) null;
--- 		update grudge set guild = '523654514977406976' where guild is null;
-	`
-	_, err = db.Exec(initSql)
-	if err != nil {
-		log.Fatalf("%q: %s\n", err, initSql)
-		return
-	}
+	doMigrations(con)
 }
 
-func InsertGrudge(guild string, reporter string, target string, why string) {
+func Grudge(guild string, reporter string, target string, why string) {
 	stmt, err := con.Prepare("insert into grudge (guild, reporter, target, why, created) values (?, ?, ?, ?, DATETIME('now'));")
 	if err != nil {
 		log.Fatalf("Couldn't write to db %s\n", err)
@@ -52,7 +37,7 @@ func InsertGrudge(guild string, reporter string, target string, why string) {
 	stmt.Exec(guild, reporter, target, why)
 }
 
-func DeleteGrudge(guild string, target string) {
+func Ungrudge(guild string, target string) {
 	stmt, err := con.Prepare("delete from grudge where guild = ? and target = ?;")
 	if err != nil {
 		log.Fatalf("Error while preparing statement %s %s, %s\n", guild, target, err)
@@ -61,7 +46,7 @@ func DeleteGrudge(guild string, target string) {
 	stmt.Exec(guild, target)
 }
 
-func ListGrudges(guild string) string {
+func Grudges(guild string) string {
 	response := ""
 	var line string
 
@@ -88,3 +73,76 @@ func ListGrudges(guild string) string {
 
 	return response
 }
+
+func Ally(guild string, ally string, status string) {
+	stmt, err := con.Prepare("insert into ally (guild, ally, status, DATETIME('now')) values (?,?,?) on conflict(guild, ally) do update set status = ?")
+	if nil != err {
+		log.Fatalf("Could not prepare query to insert ally")
+	}
+	defer stmt.Close()
+
+	stmt.Exec(guild, ally, status, status)
+}
+
+func Unally(guild string, ally string) {
+	stmt, err := con.Prepare("delete from ally where guild = ? and ally = ?")
+	if nil != err {
+		log.Fatalf("Could not prepare query to remove ally")
+	}
+	defer stmt.Close()
+
+	stmt.Exec(guild, ally)
+}
+
+func Allies(guild string) string {
+	stmt, err := con.Prepare("select ally || ' ' || status || ' ' || created from ally where guild = ? order by ally, status)")
+	if nil != err {
+		log.Fatalf("Could not prepare query to search for allies")
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(guild)
+	if nil != err {
+		log.Fatalf("Query for allies failed")
+	}
+
+	response := ""
+	var line string
+	for rows.Next() {
+		err := rows.Scan(&line)
+		if err != nil {
+			log.Println(err)
+			return ""
+		}
+		response += line + "\n"
+	}
+	return response
+}
+
+var migrations = []struct {
+	ver int
+	sql string
+}{
+	{1, "create table migrations (ver int null); insert into migrations values(0);"},
+	{2, "create table if not exists grudge ( guild varchar(80) not null, reporter varchar(80) not null, target varchar(80) not null, why varchar(255) null, created datetime);"},
+	{3, "create index if not exists grudge_idx on grudge(guild, target);"},
+	{4, "create table if not exists ally (guild varchar(80) not null, ally varchar(80) not null, status varchar(80), created datetime );"},
+	{5, "create unique index if not exists ally_idx on ally(guild);"},
+	{6, "create table if not exists roe ( guild varchar(80) not null, roe varchar(1024) not null, created datetime );"},
+	{7, "create index if not exists roe_idx on row(guild);"},
+}
+
+func doMigrations(con *sql.DB) {
+	var ver int
+	row := con.QueryRow("select ver from migrations")
+	row.Scan(&ver)
+
+	for _, migration := range migrations {
+		if (migration.ver > ver) {
+			con.Exec(migration.sql)
+			con.Exec("update migrations set ver = ?", migration.ver)
+			ver = migration.ver
+		}
+	}
+}
+

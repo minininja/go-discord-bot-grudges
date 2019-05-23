@@ -86,7 +86,7 @@ func main() {
 			who = member.Nick
 		}
 
-		InsertGrudge(ctx.Msg.GuildID, who, target, why)
+		Grudge(ctx.Msg.GuildID, who, target, why)
 		ctx.Reply("added grudge against " + target)
 	}).Desc("Report a grudge against someone, put a | (pipe symbol) between the who and the why.")
 
@@ -96,13 +96,13 @@ func main() {
 			ctx.Reply("I can't remove a grudge against nobody")
 		} else {
 			ungrudge := strings.Join(content[1:], " ")
-			DeleteGrudge(ctx.Msg.GuildID, ungrudge)
+			Ungrudge(ctx.Msg.GuildID, ungrudge)
 			ctx.Reply("Removed grudges against " + ungrudge)
 		}
 	}).Desc("Remove someone from the list")
 
 	router.On("grudges", func(ctx *exrouter.Context) {
-		grudges := ListGrudges(ctx.Msg.GuildID)
+		grudges := Grudges(ctx.Msg.GuildID)
 		if grudges != "" {
 			ctx.Reply("target : reported by : why @ when\n" + grudges)
 		} else {
