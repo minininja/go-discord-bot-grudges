@@ -106,19 +106,22 @@ func main() {
 		if grudges != "" {
 			ctx.Reply("target : reported by : why @ when\n" + grudges)
 		} else {
-			ctx.Reply("hooray, there's no one we have a grudge against")
+			ctx.Reply("Hooray, there's no one we have a grudge against")
 		}
 	}).Desc("Show the current list of grudges")
 
 	router.On("ally", func(ctx *exrouter.Context) {
 		content := strings.Split(ctx.Msg.Content, "|")
 		if 2 == len(content) {
-			ally := strings.Join(strings.Split(content[0], " ")[1:], " ")
-			Ally(ctx.Msg.GuildID, ally, content[1])
-			ctx.Reply("Saved " + ally + " as your ally(" + content[1] +")")
-			return
+			tmp := strings.Split(content[0], " ")
+			if len(tmp) > 1 {
+				ally := strings.Join(tmp[1:], " ")
+				Ally(ctx.Msg.GuildID, ally, content[1])
+				ctx.Reply("Saved " + ally + " as your ally(" + content[1] +")")
+				return
+			}
 		}
-		ctx.Reply("The format for the ally command is Ally|STATUS")
+		ctx.Reply("The format for the ally command is 'Ally|STATUS'")
 	}).Desc("Add a new ally")
 
 	router.On("unally", func(ctx *exrouter.Context) {
@@ -140,6 +143,43 @@ func main() {
 			ctx.Reply("Ally : Status @ As of when\n"+content)
 		}
 	}).Desc("List our allies")
+
+	router.On("roe", func(ctx *exrouter.Context) {
+		channels, err := discord.GuildChannels(ctx.Msg.GuildID)
+
+		if nil != err {
+			log.Print("error reading channels: " + err.Error())
+			return
+		}
+		log.Printf("channels %s", channels)
+
+
+		for _, channel := range channels {
+			log.Printf("looking at channel %s", channel.Name)
+			if ("roe" == channel.Name ) {
+				if (channel.ID != ctx.Msg.ChannelID) {
+					messages, err := discord.ChannelMessages(channel.ID, 100, "", "", "")
+
+					if nil != err {
+						log.Print("error reading messages: " + err.Error())
+						return
+					}
+
+					for i := len(messages) - 1; i >= 0; i-- {
+						if !strings.HasPrefix(messages[i].Content, commandPrefix + "roe") {
+							log.Printf("%s\n%s\n%s\n\n", messages[i].ID, messages[i].Content, messages[i].Timestamp)
+							ctx.Reply(messages[i].Content)
+						}
+					}
+					return
+				} else {
+					ctx.Reply("This function is not available inside the #roe channel")
+					return
+				}
+			}
+		}
+		ctx.Reply("No rules of engagement found, define a channel named \"roe\" to use this function")
+	}).Desc("Show the rules of engagement, requires that a 'roe' channel be defined")
 
 	// add the default/help message
 	router.Default = router.On("help", func(ctx *exrouter.Context) {
