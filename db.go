@@ -95,7 +95,7 @@ func Unally(guild string, ally string) {
 }
 
 func Allies(guild string) string {
-	stmt, err := con.Prepare("select ally || ' : ' || status || ' @ ' || created from ally where guild = ? order by ally, status;")
+	stmt, err := con.Prepare("select ally || ' : ' || status || ' @ ' || created from ally where guild = ? order by status, ally;")
 	if nil != err {
 		log.Fatalf("Could not prepare query to search for allies: " + err.Error())
 	}
