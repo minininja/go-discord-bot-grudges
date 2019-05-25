@@ -132,6 +132,8 @@ var migrations = []struct {
 	{7, "create index if not exists roe_idx on row(guild);"},
 	{8, "drop index ally_idx;"},
 	{9, "create unique index if not exists ally_idx on ally(guild, ally);"},
+	{10, "drop table roe;"},
+
 }
 
 func doMigrations(con *sql.DB) {
