@@ -75,9 +75,9 @@ func Grudges(guild string) string {
 }
 
 func Ally(guild string, ally string, status string) {
-	stmt, err := con.Prepare("insert into ally (guild, ally, status, DATETIME('now')) values (?,?,?) on conflict(guild, ally) do update set status = ?")
+	stmt, err := con.Prepare("insert into ally (guild, ally, status, created) values (?, ?, ?, DATETIME('now')) on conflict(guild, ally) do update set status = ?")
 	if nil != err {
-		log.Fatalf("Could not prepare query to insert ally")
+		log.Fatalf("Could not prepare query to insert ally: " + err.Error())
 	}
 	defer stmt.Close()
 
@@ -95,9 +95,9 @@ func Unally(guild string, ally string) {
 }
 
 func Allies(guild string) string {
-	stmt, err := con.Prepare("select ally || ' ' || status || ' ' || created from ally where guild = ? order by ally, status)")
+	stmt, err := con.Prepare("select ally || ' : ' || status || ' @ ' || created from ally where guild = ? order by ally, status;")
 	if nil != err {
-		log.Fatalf("Could not prepare query to search for allies")
+		log.Fatalf("Could not prepare query to search for allies: " + err.Error())
 	}
 	defer stmt.Close()
 
@@ -130,6 +130,8 @@ var migrations = []struct {
 	{5, "create unique index if not exists ally_idx on ally(guild);"},
 	{6, "create table if not exists roe ( guild varchar(80) not null, roe varchar(1024) not null, created datetime );"},
 	{7, "create index if not exists roe_idx on row(guild);"},
+	{8, "drop index ally_idx;"},
+	{9, "create unique index if not exists ally_idx on ally(guild, ally);"},
 }
 
 func doMigrations(con *sql.DB) {

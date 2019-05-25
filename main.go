@@ -110,6 +110,37 @@ func main() {
 		}
 	}).Desc("Show the current list of grudges")
 
+	router.On("ally", func(ctx *exrouter.Context) {
+		content := strings.Split(ctx.Msg.Content, "|")
+		if 2 == len(content) {
+			ally := strings.Join(strings.Split(content[0], " ")[1:], " ")
+			Ally(ctx.Msg.GuildID, ally, content[1])
+			ctx.Reply("Saved " + ally + " as your ally(" + content[1] +")")
+			return
+		}
+		ctx.Reply("The format for the ally command is Ally|STATUS")
+	}).Desc("Add a new ally")
+
+	router.On("unally", func(ctx *exrouter.Context) {
+		content := strings.Split(ctx.Msg.Content, " ")
+		if len(content) >= 2 {
+			ally := strings.Join(content[1:], " ")
+			Unally(ctx.Msg.GuildID, ally)
+			ctx.Reply("Removed " + ally + " from the ally list")
+			return
+		}
+		ctx.Reply("The format for the unally command is \"unally 'the ally name'\"")
+	}).Desc("Remove an ally")
+
+	router.On("allies", func(ctx *exrouter.Context) {
+		content := Allies(ctx.Msg.GuildID)
+		if "" == content {
+			ctx.Reply("We have no allies at the moment")
+		} else {
+			ctx.Reply("Ally : Status @ As of when\n"+content)
+		}
+	}).Desc("List our allies")
+
 	// add the default/help message
 	router.Default = router.On("help", func(ctx *exrouter.Context) {
 		var text = ""
