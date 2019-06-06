@@ -58,7 +58,8 @@ func Grudges(guild string) string {
 	response := ""
 	var line string
 
-	stmt, err := con.Prepare("select target || ' : ' || reporter || ' : ' || why || ' @ ' || created from grudge where guild = ? order by target, created, reporter;")
+	//stmt, err := con.Prepare("select target || ' : ' || reporter || ' : ' || why || ' @ ' || created from grudge where guild = ? order by target, created, reporter;")
+	stmt, err := con.Prepare("select target || ' : ' || why || ' @ ' || created from grudge where guild = ? order by target, created, reporter;")
 	if err != nil {
 		log.Println(err)
 	}

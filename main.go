@@ -113,7 +113,8 @@ func main() {
 		grudges := Grudges(ctx.Msg.GuildID)
 		log.Printf("grudges %s", grudges)
 		if grudges != "" {
-			chunkMessage(ctx, "target : reported by : why @ when\n", grudges)
+			//chunkMessage(ctx, "target : reported by : why @ when\n", grudges)
+			chunkMessage(ctx, "target : why @ when\n", grudges)
 		} else {
 			ctx.Reply("Hooray, there's no one we have a grudge against")
 		}
