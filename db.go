@@ -37,16 +37,19 @@ func Grudge(guild string, reporter string, target string, why string) {
 	stmt.Exec(guild, reporter, target, why)
 }
 
-func Ungrudge(guild string, target string) {
+func Ungrudge(guild string, target string) int64 {
 	stmt, err := con.Prepare("delete from grudge where guild = ? and target = ?;")
 	if err != nil {
 		log.Fatalf("Error while preparing statement %s %s, %s\n", guild, target, err)
 	}
 	defer stmt.Close()
-	stmt.Exec(guild, target)
+	result, _ := stmt.Exec(guild, target)
+	rows,_ := result.RowsAffected()
+	return rows
 }
 
 func Grudges(guild string) string {
+	log.Printf("pulling grudges for guild %s",  guild)
 	response := ""
 	var line string
 
@@ -63,14 +66,17 @@ func Grudges(guild string) string {
 	defer rows.Close()
 
 	for rows.Next() {
+		log.Print("reading a lines")
 		err := rows.Scan(&line)
 		if err != nil {
 			log.Println(err)
 			return ""
 		}
+		log.Printf("line '%s'", line)
 		response += line + "\n"
 	}
 
+	log.Printf("final response '%s'",  line)
 	return response
 }
 
@@ -84,14 +90,16 @@ func Ally(guild string, ally string, status string) {
 	stmt.Exec(guild, ally, status, status)
 }
 
-func Unally(guild string, ally string) {
+func Unally(guild string, ally string) int64 {
 	stmt, err := con.Prepare("delete from ally where guild = ? and ally = ?")
 	if nil != err {
 		log.Fatalf("Could not prepare query to remove ally")
 	}
 	defer stmt.Close()
 
-	stmt.Exec(guild, ally)
+	result, _ :=stmt.Exec(guild, ally)
+	rows, _ := result.RowsAffected()
+	return rows
 }
 
 func Allies(guild string) string {

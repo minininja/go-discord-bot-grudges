@@ -17,6 +17,7 @@ var (
 )
 
 var Session, _ = discordgo.New()
+var zero = int64(0)
 
 func init() {
 	Session.Token = os.Getenv("DG_TOKEN")
@@ -66,11 +67,12 @@ func main() {
 
 	// add the test message
 	router.On("grudge", func(ctx *exrouter.Context) {
+		log.Print("grudge command invoked")
 		content := strings.Split(ctx.Msg.Content, "|")
 
 		if len(content) == 1 {
 			ctx.Reply("You'll need to tell me who you want to grudge")
-			ctx.Reply("Example: "+ commandPrefix + "grudge the player you hate|the reason for it")
+			ctx.Reply("Example: " + commandPrefix + "grudge the player you hate|the reason for it")
 			return
 		}
 
@@ -91,20 +93,27 @@ func main() {
 	}).Desc("Report a grudge against someone, put a | (pipe symbol) between the who and the why.")
 
 	router.On("ungrudge", func(ctx *exrouter.Context) {
+		log.Print("ungrudge command invoked")
 		content := strings.Split(ctx.Msg.Content, " ")
 		if len(content) == 1 {
 			ctx.Reply("I can't remove a grudge against nobody")
 		} else {
 			ungrudge := strings.Join(content[1:], " ")
-			Ungrudge(ctx.Msg.GuildID, ungrudge)
-			ctx.Reply("Removed grudges against " + ungrudge)
+			rows := Ungrudge(ctx.Msg.GuildID, ungrudge)
+			if rows > zero {
+				ctx.Reply("Removed grudges against " + ungrudge)
+			} else {
+				ctx.Reply("Didn't find a grudge against " + ungrudge)
+			}
 		}
 	}).Desc("Remove someone from the list")
 
 	router.On("grudges", func(ctx *exrouter.Context) {
+		log.Print("grudges command invoked")
 		grudges := Grudges(ctx.Msg.GuildID)
+		log.Printf("grudges %s", grudges)
 		if grudges != "" {
-			ctx.Reply("target : reported by : why @ when\n" + grudges)
+			chunkMessage(ctx, "target : reported by : why @ when\n", grudges)
 		} else {
 			ctx.Reply("Hooray, there's no one we have a grudge against")
 		}
@@ -117,7 +126,7 @@ func main() {
 			if len(tmp) > 1 {
 				ally := strings.Join(tmp[1:], " ")
 				Ally(ctx.Msg.GuildID, ally, content[1])
-				ctx.Reply("Saved " + ally + " as your ally(" + content[1] +")")
+				ctx.Reply("Saved " + ally + " as your ally(" + content[1] + ")")
 				return
 			}
 		}
@@ -128,8 +137,13 @@ func main() {
 		content := strings.Split(ctx.Msg.Content, " ")
 		if len(content) >= 2 {
 			ally := strings.Join(content[1:], " ")
-			Unally(ctx.Msg.GuildID, ally)
-			ctx.Reply("Removed " + ally + " from the ally list")
+
+			rows := Unally(ctx.Msg.GuildID, ally)
+			if rows > zero {
+				ctx.Reply("Removed ally " + ally)
+			} else {
+				ctx.Reply("Didn't find a " + ally + " to remove")
+			}
 			return
 		}
 		ctx.Reply("The format for the unally command is \"unally 'the ally name'\"")
@@ -140,7 +154,7 @@ func main() {
 		if "" == content {
 			ctx.Reply("We have no allies at the moment")
 		} else {
-			ctx.Reply("Ally : Status @ As of when\n"+content)
+			chunkMessage(ctx, "Ally : Status @ As of when\n", content)
 		}
 	}).Desc("List our allies")
 
@@ -152,7 +166,6 @@ func main() {
 			return
 		}
 		log.Printf("channels %s", channels)
-
 
 		for _, channel := range channels {
 			log.Printf("looking at channel %s", channel.Name)
@@ -166,7 +179,7 @@ func main() {
 					}
 
 					for i := len(messages) - 1; i >= 0; i-- {
-						if !strings.HasPrefix(messages[i].Content, commandPrefix + "roe") {
+						if !strings.HasPrefix(messages[i].Content, commandPrefix+"roe") {
 							log.Printf("%s\n%s\n%s\n\n", messages[i].ID, messages[i].Content, messages[i].Timestamp)
 							ctx.Reply(messages[i].Content)
 						}
@@ -222,3 +235,32 @@ func messageLogger(session *discordgo.Session, message *discordgo.MessageCreate)
 	}
 }
 
+func limit(mesg string) bool {
+	return len(mesg) < 1990
+}
+
+func chunkMessage(ctx *exrouter.Context, header string, payload string) {
+	i := 0
+	mesg := ""
+	parts := strings.Split(payload, "\n")
+
+	for i < len(parts) {
+		if limit(header + mesg + parts[i] + "\n") {
+			mesg += parts[i] + "\n"
+		} else {
+			_, err := ctx.Reply(header + mesg)
+			if err != nil {
+				log.Printf("Error sending grudges list '%s'", err.Error())
+			}
+			mesg = ""
+		}
+		i++
+	}
+
+	if len(mesg) > 0 {
+		_, err := ctx.Reply(header + mesg)
+		if err != nil {
+			log.Printf("Error sending grudges list '%s'", err.Error())
+		}
+	}
+}
