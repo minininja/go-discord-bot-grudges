@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
+	"strings"
 )
 
 var con *sql.DB
@@ -27,6 +28,10 @@ func init() {
 	doMigrations(con)
 }
 
+func trim(str string) string {
+	return strings.Trim(str, " ")
+}
+
 func Grudge(guild string, reporter string, target string, why string) {
 	stmt, err := con.Prepare("insert into grudge (guild, reporter, target, why, created) values (?, ?, ?, ?, DATETIME('now'));")
 	if err != nil {
@@ -34,7 +39,7 @@ func Grudge(guild string, reporter string, target string, why string) {
 	}
 	defer stmt.Close()
 
-	stmt.Exec(guild, reporter, target, why)
+	stmt.Exec(guild, reporter, trim(target), trim(why))
 }
 
 func Ungrudge(guild string, target string) int64 {
@@ -87,7 +92,7 @@ func Ally(guild string, ally string, status string) {
 	}
 	defer stmt.Close()
 
-	stmt.Exec(guild, ally, status, status)
+	stmt.Exec(guild, trim(ally), trim(status), trim(status))
 }
 
 func Unally(guild string, ally string) int64 {
