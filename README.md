@@ -12,4 +12,5 @@ Work in process, use it at your own risk``
 
 **Add it to your server today**
 
-https://discordapp.com/api/oauth2/authorize?client_id=578745265662459913&permissions=201419792
+https://discordapp.com/api/oauth2/authorize?client_id=578745265662459913&permissions=201534480&scope=bot
+
